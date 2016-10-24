@@ -16,6 +16,10 @@ function writeToFile($action, $value){
 	$myfile = fopen("/tmp/finetune", "w") or die("Unable to open file!");
     }
 
+    if ($action == "shoottime"){
+	$myfile = fopen("/tmp/shoottime", "w") or die("Unable to open file!");
+    }
+
     if ($myfile != ""){
 	$txt = $value;
 	fwrite($myfile, $txt);
@@ -66,6 +70,16 @@ switch ($_POST['action']){
 
 	    case "stop":
 		writeToFile("move", "0");
+	    break;
+	}
+
+    break;
+
+    case "time":
+
+	switch ($_POST['command']){
+	    case "shoottime":
+		writeToFile("shoottime", $_POST['timer']);
 	    break;
 	}
 

@@ -1,3 +1,11 @@
+<?php
+    function readTimer(){
+
+	return 0;
+
+    }
+?>
+
 <html>
 <head>
     <script src="/jquery.js"></script>
@@ -18,6 +26,11 @@
 
     <button onclick="turn('fineleft')" value="előre">finom balra</button><br />
     <button onclick="turn('fineright')" value="hátra">finom jobbra</button><br />
+
+
+    <br /><br />
+
+    <input type="text" name="timer" id="timer" value="<?=readTimer()?>"><button onclick="writeTimer()" value="frissít">frissít</button><br />
 
 </body>
 </html>

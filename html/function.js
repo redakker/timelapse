@@ -23,3 +23,18 @@ function turn(id){
 	    });
 
 }
+
+function writeTimer(){
+
+    var timer = $('#timer').val();
+
+    $.ajax({
+		type: "POST",
+		url: "/ajax.php",
+		data: "action=time&command=shoottime&timer=" + timer,
+		success: function(back){
+	
+		}
+	    });
+
+}
