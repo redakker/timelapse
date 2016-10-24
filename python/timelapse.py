@@ -71,10 +71,8 @@ def fireCamera():
     if (timer != '0'):
 	print "shoot"
     
-
     #print "a"
     
-
 ###################### FUNCTIONS END
 
 ############# camera fire ##########
