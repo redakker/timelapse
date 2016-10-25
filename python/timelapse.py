@@ -3,9 +3,12 @@ import RPi.GPIO as GPIO
 import time
 import os
 import threading
+import socket
+import errno
 from time import sleep
 execfile("common/Functions.py")
 
+#### GPIO DEFINITION ##################
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
@@ -20,58 +23,51 @@ backMotor = Motor([26,19,13,6])
 backMotor.rpm = 1
 
 # Application variables
-position = 0
-SleepTime = 2
-storedDirection = '0'
-fineTune = '0'
 
-# Set the pins to default
-#for i in pinList: 
-#    GPIO.setup(i, GPIO.OUT) 
-#    GPIO.output(i, GPIO.HIGH)
+SOCKET_FILE = "/var/run/python_timelapse_socket"
+LOG_FILE = "/var/log/timelapse.log"
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-# Create commander files
-# These files are the interface between the commander website and the program
+# default values / car commands
+msg = ""				#commands is written to this variable
+forward = 0				# speed parameters (positive forward, negative backward, 0 means stop)
+# direction = 0 		# direction of the car (1=right, 0=straight, -1=left)
+# fineTune = 0    		# fine tune the front motor (1=right, -1=left)
+shootingInterval = 0	# camera shooting interval
 
-# Forward, backward (0=stop, 1=forward, -1=backward)
-f = open('/tmp/speed','w')
-f.write('0') # python will convert \n to os.linesep
-f.close()
+# Create socket for communication between the web and python
 
-# Left, Right (0=forward, 1=right, -1=left)
-f = open('/tmp/direction','w')
-f.write(storedDirection) # python will convert \n to os.linesep
-f.close()
+if os.path.exists(SOCKET_FILE):
+    os.remove(SOCKET_FILE)
 
-# Fine tune (1=right, -1=left)
-f = open('/tmp/finetune','w')
-f.write(fineTune) # python will convert \n to os.linesep
-f.close()
+print("Opening socket...")
+usocket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+usocket.bind(SOCKET_FILE)
+usocket.setblocking(0)
+os.chmod(SOCKET_FILE, 0777)
+print("Listening...")
+	
 
-# Shoot time (seconds)
-f = open('/tmp/shoottime','w')
-f.write(fineTune) # python will convert \n to os.linesep
-f.close()
-
-os.chmod('/tmp/speed', 0777)
-os.chmod('/tmp/direction', 0777)
-os.chmod('/tmp/finetune', 0777)
-os.chmod('/tmp/shoottime', 0777)
-
+if (not os.path.isfile(LOG_FILE)):
+	f = open(LOG_FILE,'w')
+	f.write(time.strftime(TIME_FORMAT) + " - Log started")
+	f.close()
 ###################### FUNCTIONS
 
 def fireCamera():
     timer = 1
-    # Read the interval from file. 0 means do not fire the camrea, we don't lose the timer if t=0
-    file = open('/tmp/shoottime', 'r')
-    timer = file.read()
-    t = float(timer)
-    threading.Timer(t, fireCamera).start()
+    # Read the interval from global variable. 0 means do not fire the camrea, we don't lose the timer if t=0
+    #t = int(shootingInterval)
+    #threading.Timer(t, fireCamera).start()
     
-    if (timer != '0'):
-	print "shoot"
+    #if (t != 0):
+	#print "shoot"
     
-    #print "a"
+def log(msg):
+	f = open(LOG_FILE,'a')
+	f.write(time.strftime(TIME_FORMAT) + " - " + msg + "\n")
+	f.close()
+	
     
 ###################### FUNCTIONS END
 
@@ -83,64 +79,76 @@ fireCamera()
 # main loop
 try:
   while True:
+	
 	try:
-	    ############## speed ################
-	    file = open('/tmp/speed', 'r')
-	    speed = file.read()
+		msg = usocket.recv(1024)
+	except socket.error:
+		print "no data"
+		
+	print "lefut"
+	if not msg:
+		break
+	else:
+		log(msg)
+		if "QUIT" == msg:
+			log("QUIT command received, program exit")
+			break
 
-	    if (speed != '0'):
-		s = int(speed)
-		backMotor.step(s);  
-	
+	# message could contain more command in comma separated value
+	command,value = msg.split(",")
 
-	    ############## direction ############
+	## Set ALL values and the contorl the cas
 
-	    file = open('/tmp/direction', 'r')
-	    direction = file.read()
+	############## speed ################
+	if (command == 'move'):
+		if (value == 'forward'):
+			forward = 1;
+			log("Move forward")
+		if (value == 'backward'):
+			forward = -1
+			log("Move backward")
+		if (value == 'stop'):
+			forward = 0
+			log("Stop move")
+			
+	backMotor.step(forward);
+		
+	############## direction ############
 
-	    if (direction != '0'):
-		if (direction != storedDirection):
-		    if (direction == '1'):
-			frontMotor.move_to(-35);
-			storedDirection = '1'
-	    
-		    if (direction == '-1'):
+	if (command == 'turn'):
+		if (value == 'left'):
 			frontMotor.move_to(35)
-			storedDirection = '-1'
+			log("Turn left")
+		if (value == 'right'):
+			frontMotor.move_to(-35);
+			log("Turn right")
+		if (value == 'straight'):
+			frontMotor.move_to(0);
+			log("Back to straight")
+		
+	############## fine tune ############	    
 
-	    if (direction == '0' and direction != storedDirection):
-		storedDirection = '0'
-    		frontMotor.move_to(0)
-
-	    ############## fine tune ############	    
-
-	    file = open('/tmp/finetune', 'r')
-	    fineTune = file.read()
-
-	    if (fineTune != '0'):
-		if (fineTune == '1'):
-		    frontMotor.step(-1)
-		if (fineTune == '-1'):
-		    frontMotor.step(1)
-
-		# Set back the fine tune value to 0
-		f = open('/tmp/finetune','w')
-		f.write('0') # python will convert \n to os.linesep
-		f.close()
-
-
-	#time.sleep(SleepTime)   
-	except ValueError:
-	    #noop
-	    print "noop"
+	if (command == 'fine'):
+		if (value == 'left'):
+			frontMotor.step(1)
+			log("Fine tune left")
+		if (value == 'right'):
+			frontMotor.step(-1)
+			log("Fine tune right")
 	
+	########## shooting time ############
+	if (command == 'shoot'):
+		shootingInterval = int(value)
+		log("Shooting interval set to " + value)
+
+	# always set to emty the msg if that was processed
+	msg = ""
 
 # End program cleanly with keyboard
 except KeyboardInterrupt:
-  print "  Quit"
+	print "  Quit"
 
-  # Reset GPIO settings
-  GPIO.cleanup()
-
+# Reset GPIO settings
+GPIO.cleanup()
 
 

@@ -1,30 +1,14 @@
 <?php 
 
-function writeToFile($action, $value){
+function writeToSocket($command){
 
-    $myfile = "";
+	$socket = socket_create(AF_UNIX, SOCK_DGRAM, 0);
 
-    if ($action == "turn"){
-	$myfile = fopen("/tmp/direction", "w") or die("Unable to open file!");
-    }
+	socket_connect($socket, "/var/run/python_timelapse_socket");
 
-    if ($action == "move"){
-	$myfile = fopen("/tmp/speed", "w") or die("Unable to open file!");
-    }
+	socket_write($socket, $command, strlen($command));
 
-    if ($action == "fine"){
-	$myfile = fopen("/tmp/finetune", "w") or die("Unable to open file!");
-    }
-
-    if ($action == "shoottime"){
-	$myfile = fopen("/tmp/shoottime", "w") or die("Unable to open file!");
-    }
-
-    if ($myfile != ""){
-	$txt = $value;
-	fwrite($myfile, $txt);
-	fclose($myfile);
-    }
+	socket_close($socket);
 
 }
 
@@ -34,23 +18,23 @@ switch ($_POST['action']){
 
 	switch ($_POST['command']){
 	    case "right":
-		writeToFile("turn", "1");	    
-    	    break;
+			writeToSocket("turn,right");   
+    	break;
 
 	    case "left":
-		writeToFile("turn", "-1");
+			writeToSocket("turn,left"); 
 	    break;
 
 	    case "straight":
-    		writeToFile("turn", "0");
+    		writeToSocket("turn,straight"); 
 	    break;
 
 	    case "fineright":
-    		writeToFile("fine", "1");
+    		writeToSocket("fine,right");
 	    break;
 
 	    case "fineleft":
-    		writeToFile("fine", "-1");
+    		writeToSocket("fine,left");
 	    break;
 	}
 	
@@ -61,15 +45,15 @@ switch ($_POST['action']){
 
 	switch ($_POST['command']){
 	    case "forward":
-		writeToFile("move", "1");
+			writeToSocket("move,forward");
 	    break;
 
 	    case "backward":
-		writeToFile("move", "-1");
+			writeToSocket("move,backward");
 	    break;
 
 	    case "stop":
-		writeToFile("move", "0");
+			writeToSocket("move,stop");
 	    break;
 	}
 
@@ -79,7 +63,7 @@ switch ($_POST['action']){
 
 	switch ($_POST['command']){
 	    case "shoottime":
-		writeToFile("shoottime", $_POST['timer']);
+		writeToSocket("shoot", $_POST['timer']);
 	    break;
 	}
 
