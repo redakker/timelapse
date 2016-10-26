@@ -40,19 +40,25 @@ shootingInterval = 0	# camera shooting interval
 if os.path.exists(SOCKET_FILE):
     os.remove(SOCKET_FILE)
 
-print("Opening socket...")
-usocket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-usocket.bind(SOCKET_FILE)
-usocket.setblocking(0)
-os.chmod(SOCKET_FILE, 0777)
-print("Listening...")
-	
-
 if (not os.path.isfile(LOG_FILE)):
 	f = open(LOG_FILE,'w')
 	f.write(time.strftime(TIME_FORMAT) + " - Log started")
 	f.close()
 ###################### FUNCTIONS
+
+def readSocket():
+
+    global msg
+
+    print("Opening socket...")
+    usocket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    usocket.bind(SOCKET_FILE)
+    os.chmod(SOCKET_FILE, 0777)
+    print("Listening...")
+    
+    while True:
+	msg = usocket.recv(1024)
+	print msg
 
 def fireCamera():
     timer = 1
@@ -75,27 +81,23 @@ def log(msg):
 
 # run the camera fire process (external) first and then step into the main loop to move the car
 fireCamera()
+threading.Thread(target=readSocket).start()
 
 # main loop
 try:
   while True:
-	
-	try:
-		msg = usocket.recv(1024)
-	except socket.error:
-		print "no data"
-		
+				
 	print "lefut"
-	if not msg:
-		break
-	else:
-		log(msg)
-		if "QUIT" == msg:
-			log("QUIT command received, program exit")
-			break
+		
+	if "QUIT" == msg:
+	    log("QUIT command received, program exit")
+	    break
 
 	# message could contain more command in comma separated value
-	command,value = msg.split(",")
+	if not msg == "":
+	    command,value = msg.split(",")
+	else:
+	    command = ""
 
 	## Set ALL values and the contorl the cas
 
@@ -143,6 +145,7 @@ try:
 
 	# always set to emty the msg if that was processed
 	msg = ""
+	time.sleep(0.1)
 
 # End program cleanly with keyboard
 except KeyboardInterrupt:
