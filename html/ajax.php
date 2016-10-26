@@ -63,7 +63,7 @@ switch ($_POST['action']){
 
 	switch ($_POST['command']){
 	    case "shoottime":
-		writeToSocket("shoot", $_POST['timer']);
+		writeToSocket("shoot,".$_POST['timer']);
 	    break;
 	}
 

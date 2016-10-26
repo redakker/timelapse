@@ -5,6 +5,9 @@ import os
 import threading
 import socket
 import errno
+# python-gphoto2 - Python interface to libgphoto2
+# import gphoto2 as gp
+import commands
 from time import sleep
 execfile("common/Functions.py")
 
@@ -55,18 +58,23 @@ def readSocket():
     usocket.bind(SOCKET_FILE)
     os.chmod(SOCKET_FILE, 0777)
     print("Listening...")
+    try:   
+	while True:
+	    msg = usocket.recv(1024)
+	    print msg
     
-    while True:
-	msg = usocket.recv(1024)
-	print msg
+    except KeyboardInterrupt:
+	print "  Quit"
+
 
 def fireCamera():
-    timer = 1
+
     # Read the interval from global variable. 0 means do not fire the camrea, we don't lose the timer if t=0
-    #t = int(shootingInterval)
-    #threading.Timer(t, fireCamera).start()
+    t = int(shootingInterval)
+    threading.Timer(t, fireCamera).start()
     
-    #if (t != 0):
+    if (t != 0):
+	commands.getstatusoutput('gphoto2 --trigger-capture')
 	#print "shoot"
     
 def log(msg):
@@ -78,16 +86,17 @@ def log(msg):
 ###################### FUNCTIONS END
 
 ############# camera fire ##########
-
 # run the camera fire process (external) first and then step into the main loop to move the car
 fireCamera()
+
+# read the socket with another thread
 threading.Thread(target=readSocket).start()
+
+
 
 # main loop
 try:
   while True:
-				
-	print "lefut"
 		
 	if "QUIT" == msg:
 	    log("QUIT command received, program exit")
@@ -144,8 +153,10 @@ try:
 		log("Shooting interval set to " + value)
 
 	# always set to emty the msg if that was processed
-	msg = ""
-	time.sleep(0.1)
+	if not command == "":
+	    msg = ""
+	if forward == 0:
+	    time.sleep(1)
 
 # End program cleanly with keyboard
 except KeyboardInterrupt:
