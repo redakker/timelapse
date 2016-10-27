@@ -9,7 +9,7 @@ import errno
 # import gphoto2 as gp
 import commands
 from time import sleep
-execfile("common/Functions.py")
+execfile("/srv/git/timelapse/python/common/Functions.py")
 
 #### GPIO DEFINITION ##################
 GPIO.setmode(GPIO.BCM)
@@ -32,76 +32,31 @@ LOG_FILE = "/var/log/timelapse.log"
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # default values / car commands
-msg = ""				#commands is written to this variable
 forward = 0				# speed parameters (positive forward, negative backward, 0 means stop)
-# direction = 0 		# direction of the car (1=right, 0=straight, -1=left)
-# fineTune = 0    		# fine tune the front motor (1=right, -1=left)
 shootingInterval = 0	# camera shooting interval
+exit = False;			# stop flag for while loop
 
-# Create socket for communication between the web and python
+###################### FUNCTIONS ######################
 
-if os.path.exists(SOCKET_FILE):
-    os.remove(SOCKET_FILE)
-
-if (not os.path.isfile(LOG_FILE)):
-	f = open(LOG_FILE,'w')
-	f.write(time.strftime(TIME_FORMAT) + " - Log started")
-	f.close()
-###################### FUNCTIONS
-
+### Socket definition and read mechanism
 def readSocket():
-
-    global msg
-
-    print("Opening socket...")
-    usocket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-    usocket.bind(SOCKET_FILE)
-    os.chmod(SOCKET_FILE, 0777)
-    print("Listening...")
-    try:   
-	while True:
-	    msg = usocket.recv(1024)
-	    print msg
-    
-    except KeyboardInterrupt:
-	print "  Quit"
-
-
-def fireCamera():
-
-    # Read the interval from global variable. 0 means do not fire the camrea, we don't lose the timer if t=0
-    t = int(shootingInterval)
-    threading.Timer(t, fireCamera).start()
-    
-    if (t != 0):
-	commands.getstatusoutput('gphoto2 --trigger-capture')
-	#print "shoot"
-    
-def log(msg):
-	f = open(LOG_FILE,'a')
-	f.write(time.strftime(TIME_FORMAT) + " - " + msg + "\n")
-	f.close()
+	global msg
 	
-    
-###################### FUNCTIONS END
+	print("Opening socket...")
+	usocket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+	usocket.bind(SOCKET_FILE)
+	os.chmod(SOCKET_FILE, 0777)
+	print("Listening...")
+	while True:
+		msg = usocket.recv(1024)
+		handleMessage(msg)
+		time.sleep(0.1)
 
-############# camera fire ##########
-# run the camera fire process (external) first and then step into the main loop to move the car
-fireCamera()
-
-# read the socket with another thread
-threading.Thread(target=readSocket).start()
-
-
-
-# main loop
-try:
-  while True:
-		
-	if "QUIT" == msg:
-	    log("QUIT command received, program exit")
-	    break
-
+### Handle the messages command from outside
+def handleMessage(msg):
+	
+	global forward, shootingInterval
+	
 	# message could contain more command in comma separated value
 	if not msg == "":
 	    command,value = msg.split(",")
@@ -121,8 +76,6 @@ try:
 		if (value == 'stop'):
 			forward = 0
 			log("Stop move")
-			
-	backMotor.step(forward);
 		
 	############## direction ############
 
@@ -155,12 +108,56 @@ try:
 	# always set to emty the msg if that was processed
 	if not command == "":
 	    msg = ""
+
+### Fires the camera
+### in another thread because of the periodic loop
+def fireCamera():
+
+    # Read the interval from global variable. 0 means do not fire the camrea, we don't lose the timer if t=0
+    t = int(shootingInterval)
+    threading.Timer(t, fireCamera).start()
+    
+    if (t != 0):
+		commands.getstatusoutput('gphoto2 --trigger-capture')
+		
+## Log the given message
+def log(msg):
+	f = open(LOG_FILE,'a')
+	f.write(time.strftime(TIME_FORMAT) + " - " + msg + "\n")
+	f.close()
+    
+###################### FUNCTIONS END ######################
+
+### Delete the socket file from the previous session to the clear system
+if os.path.exists(SOCKET_FILE):
+    os.remove(SOCKET_FILE)
+
+### Create a log file if not exists
+if (not os.path.isfile(LOG_FILE)):
+	f = open(LOG_FILE,'w')
+	f.write(time.strftime(TIME_FORMAT) + " - Log started")
+	f.close()
+
+############# Camera fire ##########
+# run the camera fire process (external) first and then step into the main loop to move the car
+fireCamera()
+
+# read the socket with another thread
+threading.Thread(target=readSocket).start()
+
+# main loop
+try:
+  while True and not exit:
+		
+	backMotor.step(forward);
+	
 	if forward == 0:
 	    time.sleep(1)
 
 # End program cleanly with keyboard
 except KeyboardInterrupt:
 	print "  Quit"
+	exit = True;
 
 # Reset GPIO settings
 GPIO.cleanup()

@@ -24,14 +24,12 @@ function turn(id){
 
 }
 
-function writeTimer(){
-
-    var timer = $('#timer').val();
+function writeTimer(time){
 
     $.ajax({
 		type: "POST",
 		url: "/ajax.php",
-		data: "action=time&command=shoottime&timer=" + timer,
+		data: "action=time&command=shoottime&timer=" + time,
 		success: function(back){
 	
 		}
