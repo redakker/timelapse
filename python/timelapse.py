@@ -123,7 +123,7 @@ def fireCamera():
     
     if (t != 0):
 	os.system("gphoto2 --set-config capturetarget=1")
-	log(str(commands.getstatusoutput('gphoto2 --get-config capturetarget')))
+	#log(str(commands.getstatusoutput('gphoto2 --get-config capturetarget')))
 	commands.getstatusoutput('gphoto2 --trigger-capture')
 		
 ## Log the given message
