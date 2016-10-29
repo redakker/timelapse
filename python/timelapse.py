@@ -36,6 +36,10 @@ forward = 0				# speed parameters (positive forward, negative backward, 0 means 
 shootingInterval = 0	# camera shooting interval
 exit = False;			# stop flag for while loop
 
+### Setup the camera. Set the capture tarrget to memory card
+
+#log(os.system("gphoto2 --get-config capturetarget"))
+
 ###################### FUNCTIONS ######################
 
 ### Socket definition and read mechanism
@@ -112,13 +116,15 @@ def handleMessage(msg):
 ### Fires the camera
 ### in another thread because of the periodic loop
 def fireCamera():
-
+    
     # Read the interval from global variable. 0 means do not fire the camrea, we don't lose the timer if t=0
     t = int(shootingInterval)
     threading.Timer(t, fireCamera).start()
     
     if (t != 0):
-		commands.getstatusoutput('gphoto2 --trigger-capture')
+	os.system("gphoto2 --set-config capturetarget=1")
+	log(str(commands.getstatusoutput('gphoto2 --get-config capturetarget')))
+	commands.getstatusoutput('gphoto2 --trigger-capture')
 		
 ## Log the given message
 def log(msg):
