@@ -70,6 +70,10 @@ def handleMessage(msg):
 	## Set ALL values and the contorl the cas
 
 	############## speed ################
+	if (command == 'speed'):	
+		backMotor.set_rpm(int(value))
+	
+	############## move ################
 	if (command == 'move'):
 		if (value == 'forward'):
 			forward = 1;
@@ -95,14 +99,14 @@ def handleMessage(msg):
 			log("Back to straight")
 		
 	############## fine tune ############	    
-
-	if (command == 'fine'):
-		if (value == 'left'):
+		if (value == 'fineleft'):
 			frontMotor.step(1)
 			log("Fine tune left")
-		if (value == 'right'):
+		if (value == 'fineright'):
 			frontMotor.step(-1)
 			log("Fine tune right")
+	
+		
 	
 	########## shooting time ############
 	if (command == 'shoot'):

@@ -12,64 +12,8 @@ function writeToSocket($command){
 
 }
 
-switch ($_POST['action']){
-
-    case "turn":
-
-	switch ($_POST['command']){
-	    case "right":
-			writeToSocket("turn,right");   
-    	break;
-
-	    case "left":
-			writeToSocket("turn,left"); 
-	    break;
-
-	    case "straight":
-    		writeToSocket("turn,straight"); 
-	    break;
-
-	    case "fineright":
-    		writeToSocket("fine,right");
-	    break;
-
-	    case "fineleft":
-    		writeToSocket("fine,left");
-	    break;
-	}
-	
-
-    break;
-
-    case "move":
-
-	switch ($_POST['command']){
-	    case "forward":
-			writeToSocket("move,forward");
-	    break;
-
-	    case "backward":
-			writeToSocket("move,backward");
-	    break;
-
-	    case "stop":
-			writeToSocket("move,stop");
-	    break;
-	}
-
-    break;
-
-    case "time":
-
-	switch ($_POST['command']){
-	    case "shoottime":
-		writeToSocket("shoot,".$_POST['timer']);
-	    break;
-	}
-
-    break;
-
+if ($_POST['action'] == "command"){
+	writeToSocket($_POST['command'].",".$_POST['value']);   
 }
-
 
 ?>

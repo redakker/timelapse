@@ -52,6 +52,11 @@ class Motor(object):
     # behind the scenes it sets the _T attribute
     rpm = property(lambda self: self._rpm, _set_rpm)
 
+    def set_rpm(self, rpm):
+        self._rpm = rpm
+        # T is the amount of time to stop between signals
+        self._T = (60.0 / rpm) / self.steps_per_rev
+
     def move_to(self, angle):
         """Take the shortest route to a particular angle (degrees)."""
         # Make sure there is a 1:1 mapping between angle and stepper angle

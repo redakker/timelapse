@@ -34,5 +34,17 @@ function writeTimer(time){
 	
 		}
 	    });
+}
+
+function command(command,value) {
+
+	$.ajax({
+		type: "POST",
+		url: "/ajax.php",
+		data: "action=command&command=" + command + "&value=" + value,
+		success: function(back){
+	
+		}
+	    });
 
 }
